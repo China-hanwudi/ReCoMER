@@ -1,0 +1,8 @@
+{
+  "description": "Dataset-specific mechanism paths described in the manuscript. Set input_dims and remaining optimization/model values for your own feature tensors and training configuration.",
+  "presets": {
+    "m3ed": {"num_classes": 7, "num_heads": 6, "num_layers": 2, "history_k": 3, "include_history_tokens": false, "weighted_pooling": true, "use_attenuation": true},
+    "iemocap": {"num_classes": 6, "num_heads": 6, "num_layers": 2, "history_k": 3, "include_history_tokens": true, "weighted_pooling": false, "use_attenuation": false},
+    "emotiontalk": {"num_classes": 7, "num_heads": 6, "num_layers": 2, "history_k": 3, "include_history_tokens": true, "weighted_pooling": false, "use_attenuation": false}
+  }
+}

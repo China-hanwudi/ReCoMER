@@ -1,36 +1,76 @@
-# CARMA-Affect / TemporalN3
+# ReCoMER
 
-> **仓库现状（2026-10-06 更新）**：当前最新工作主线是 **ReCoMER 论文**（多模态对话情绪识别，CVPR 格式，正文恰好 8 页），全部材料在 [`ReCoMER_paper_20261006/`](ReCoMER_paper_20261006/)：修改版论文 PDF（v3）、LaTeX 工程、实验图 A–H、四数据集 × 5 臂 × 10 seed 矩阵、跨数据集实例化（IEMOCAP/MELD）、同协议复现基线（MLP 44.73 / DialogueRNN 41.61 vs ReCoMER 58.00）、SOTA 差距归因与问题清单。下文描述的 TemporalN3 v10 为历史主线，保留备查。
+**Reliability and Context Modeling to Mitigate Biases in Multimodal Conversational Emotion Recognition**
 
----
+[Paper](paper/ReCoMER.pdf) · [中文说明](README.zh-CN.md) · [Method & data interface](paper/IMPLEMENTATION.md) · [Reported results](paper/results.json)
 
-## （历史主线）TemporalN3 v10
+ReCoMER coordinates **which history to admit**, **how strongly it updates current evidence**, and **how modality contributions are estimated after that update**. A complementary audio-visual prediction path supplies prior-relative nonverbal evidence at the decision level.
 
-当前公开模型主线是面向 **M3ED、CMU-MOSEI、CH-SIMS_v2** 的 TemporalN3 v10 exploratory model。活动代码位于 [`模型/n3_affect/`](模型/n3_affect/)，冻结快照位于 [`模型/TemporalN3_TopJournal_v10_20260914/`](模型/TemporalN3_TopJournal_v10_20260914/)。MELD、IEMOCAP、EmotionTalk 不属于当前训练、基准或 SOTA 流程。
+![ReCoMER architecture](paper/figures/overview.png)
 
-当前主线与历史文档边界见 [`模型/ACTIVE_DATASETS.md`](模型/ACTIVE_DATASETS.md) 和 [`模型/GITHUB_ACTIVE_MAINLINE.md`](模型/GITHUB_ACTIVE_MAINLINE.md)。
+## Paper-reported performance
 
-## 模型结构
+| Dataset | WF1 (%) | ACC (%) | Summary |
+|---|---:|---:|---|
+| M3ED | **62.07** | — | +7.02% over the listed MF-EDM result |
+| IEMOCAP | **78.53** | — | Three-run mean; sample SD 0.04% |
+| EmotionTalk | **72.03** | **72.52** | ACC +1.29% over the listed LMF result |
 
-当前 T/A/V 经过输入归一化和零初始化残差瓶颈适配器后，由带 modality mask 的 Transformer 聚合。当前单模态标签锚定头、候选级 `3x3` 跨模态关系、反事实效用与风险过滤共同工作；`CandidateRiskFallback` 在风险过高时硬回退到独立 current-only 分支。分类和连续回归使用独立任务头。
+Performance gains denote differences between percentage-scale scores. The results follow the evaluation protocols in the linked manuscript; the IEMOCAP figure is a mean, while M3ED and EmotionTalk report individual runs. EmotionTalk WF1 is labeled separately from the literature's source F1 metric.
 
-模型保留：有界历史残差、缺失模态 mask、speaker-conditioned 状态、反事实效用监督、冗余抑制和空历史严格回退。历史由 packed `history_index` 规范为 oldest-to-newest、右对齐 K=3；未来或无效索引被屏蔽。
+## Method highlights
 
-## 活动任务
+- **NCHA — conditional history admission.** A preliminary history reading informs the second round of null-candidate competition and a shared admission decision.
+- **FCCR — bounded historical feedback.** Modality-specific residual adapters refine current representations within a relative norm budget.
+- **SABER — contribution routing after updating.** Fixed-state Shapley supervision connects updated evidence to bounded modality weights. Inference uses a single scorer pass.
+- **cRBEF — prior-relative nonverbal correction.** A separately trained AV expert supplies class-wise evidence, an utterance-level gate controls correction strength, and arithmetic fusion combines complete predictions.
 
-| 数据集 | 任务 | 特征维度 | checkpoint 选择 |
-|---|---|---|---|
-| M3ED | 七分类 | T/A/V = 768/1024/342 | valid Weighted-F1，其次 Macro-F1 |
-| CMU-MOSEI | 连续回归 | T/A/V = 768/74/35 | valid MAE |
-| CH-SIMS_v2 | 连续回归 | 从 packed manifest 读取 | valid MAE |
+The manuscript's selected matched component gains are **NCHA +2.913%**, **FCCR +3.290%**, **SABER +1.902%**, and **cRBEF +7.478%**. Each describes its own matched comparison; these effects are not added together. All 18 mechanism results and their interpretation are available in [the result record](paper/results.json) and the paper.
 
-数据、预计算特征、密钥和训练产物不提交到仓库。v10 建立于 v9 test 已封存评估之后，因此旧 test 不得再次用于调参、早停、风险校准或 checkpoint 选择；新性能结论需要新的冻结评估协议。当前代码仍使用 packed 特征，不声称已经接入 HuBERT、emotion2vec、CLIP 或 Swin。
-
-## 工程检查
+## Quick start
 
 ```bash
-python -m compileall 模型/n3_affect
-python -m pytest temporal_n3/tests -q
+git clone https://github.com/China-hanwudi/ReCoMER.git
+cd ReCoMER
+python -m pip install -e ".[dev]"
+python scripts/demo_recomer.py
+python -m pytest tests/recomer -q
+python scripts/report_paper_results.py
 ```
 
-正式训练入口和 A100 预检见 [`模型/run_a100_training_v10.sh`](模型/run_a100_training_v10.sh)，交接说明见 [`模型/TRAINING_AGENT_GUIDE_v10.md`](模型/TRAINING_AGENT_GUIDE_v10.md)。当前仓库只记录源码和实验合同，不声称已经完成 v10 正式性能复现。
+The demo uses synthetic feature tensors to exercise the full prediction composition on CPU. The Python package is a readable reference implementation of the manuscript's core mechanisms. The performance table above records the manuscript experiments, rather than a score produced by the synthetic demo.
+
+```python
+from recomer import ReCoMERConfig, ReCoMERContextModel
+
+config = ReCoMERConfig(input_dims=(768, 1024, 342), num_classes=7)
+model = ReCoMERContextModel(config)
+output = model(current, history, modality_mask=present, history_mask=valid_history)
+probabilities = output["probabilities"]
+```
+
+Feature dimensions should match your own packed features. See [the input schema](paper/IMPLEMENTATION.md) for masks, speaker relations, training objectives, frozen prediction composition, and dataset presets.
+
+## Repository layout
+
+```text
+recomer/                    PyTorch modules and prediction composition
+tests/recomer/              CPU mechanism tests
+scripts/demo_recomer.py     Synthetic forward and correction example
+scripts/report_paper_results.py
+configs/dataset_presets.json
+paper/ReCoMER.pdf           Manuscript supplied for this release
+paper/figures/overview.png  Original architecture figure extracted from the paper
+paper/results.json         Paper-reported aggregate results
+paper/IMPLEMENTATION.md     Interfaces and evaluation protocols
+```
+
+The existing TemporalN3 and `ReCoMER_paper_20261006/` directories remain available as earlier research versions. The current ReCoMER entry point is the package and manuscript linked above. Repository history and existing data remain intact.
+
+## Efficiency
+
+The manuscript reports **13.121M parameters** and **1.401 ms per utterance** on an RTX 5090. NCHA, FCCR, and SABER jointly add **0.086M parameters (0.66%)**. Timing uses the median of five post-warmup runs on eight development dialogues (187 utterances), including expert computation and excluding feature extraction, transfers, and model loading.
+
+## Citation and license
+
+The manuscript title and BibTeX entry are in [CITATION.bib](CITATION.bib). Repository-owned code is distributed under the existing [MIT license](LICENSE). Obtain datasets and pretrained feature extractors from their original providers under their own terms.
