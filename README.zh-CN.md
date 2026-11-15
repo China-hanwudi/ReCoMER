@@ -1,33 +1,35 @@
-# ReCoMER
+# HMBR
 
-**通过可靠性与上下文建模缓解多模态对话情感识别中的偏差**
+**Historical and Modal Bias Reassessment Mitigation for Multimodal Conversational Emotion Recognition**
 
-[English](README.md) · [论文 PDF](paper/ReCoMER.pdf) · [方法与输入接口](paper/IMPLEMENTATION.md) · [论文结果](paper/results.json)
+[English](README.md) · [HMBR 论文（PDF）](paper/ReCoMER.pdf) · [实现与数据接口](paper/IMPLEMENTATION.md) · [实验结果](paper/results.json)
 
-ReCoMER 将历史准入、有界历史反馈与更新后的模态贡献估计相衔接，并通过独立的音视频预测路径提供先验相对的非语言证据。
+HMBR 根据文本、音频和视觉特征识别当前话语的情感。模型先判断先前话轮能否帮助理解当前话语，限制历史信息对当前表示的影响，再根据各模态在当前语境中的贡献分配权重。独立的音视频专家利用非语言线索进一步校正预测。
 
-![ReCoMER 方法框架](paper/figures/overview.png)
+![论文图 2，HMBR 在 M3ED 上的模型结构](paper/figures/overview.png)
 
-## 论文主结果
+## 实验结果
 
-| 数据集 | WF1（%） | ACC（%） | 说明 |
-|---|---:|---:|---|
-| M3ED | **62.07** | — | 相对表中 MF-EDM 的 WF1 增益为 7.02% |
-| IEMOCAP | **78.53** | — | 三次运行均值，样本标准差 0.04% |
-| EmotionTalk | **72.03** | **72.52** | 相对表中 LMF 的 ACC 增益为 1.29% |
+论文表 1–3 报告三个数据集上的加权 F1（WF1），计算时按各类别的样本数加权。
 
-性能增益表示百分制得分的差值。结果遵循论文中的评估协议；M3ED、EmotionTalk 报告单次结果，IEMOCAP 报告多次均值。EmotionTalk 的本文 WF1 与文献来源的 F1 分别标明。
+| 数据集 | HMBR WF1（%） | 评估方式 |
+|---|---:|---|
+| M3ED | **62.07** | 单次运行，采用官方按电视剧划分的数据集 |
+| IEMOCAP | **78.53** | 三次运行均值，使用 Session 5 测试 |
+| EmotionTalk | **72.03** | 单次运行，采用说话人独立划分 |
 
-## 四个模块
+## 模型方法
 
-- **NCHA：条件化历史准入。** 首轮历史读取提供准入估计，随后调节第二轮空候选竞争，并控制共享准入决定。
-- **FCCR：有界历史反馈。** 模态专属残差适配器在相对范数预算内重评当前表示。
-- **SABER：更新后的贡献路由。** 固定历史状态下的 Shapley 监督引导有界模态权重，推理仅需一次评分。
-- **cRBEF：先验相对非语言校正。** 独立 AV 专家提供类别证据，语句级门控调节强度，算术融合组合完整预测。
+- **NCHA** 估计先前话轮是否有助于理解当前话语。模型据此调整历史话轮与空候选的竞争，并通过门控决定是否引入历史反馈。
+- **FCCR** 为每种模态学习校正量，并根据当前表示的范数限制校正幅度。
+- **SABER** 在历史更新后估计各模态的贡献。训练时使用 Shapley 目标监督评分器，推理时由评分器直接给出有界的模态权重。
+- **cRBEF** 对比音视频专家的预测与训练集类别先验，用门控调节校正强度，再融合专家分支和上下文分支的预测。
 
-论文所选匹配比较中的增益分别为 **NCHA +2.913%、FCCR +3.290%、SABER +1.902%、cRBEF +7.478%**。各项对应各自的比较条件，不能相加；完整的 18 项机制结果见[结果记录](paper/results.json)。
+表 4 报告 M3ED 上四个模块的 WF1 增益，单位为百分点。NCHA 为 +2.913，FCCR 为 +3.290，SABER 为 +1.902，cRBEF 为 +7.478。表 5–8 报告 14 项模块内部机制对比，第 4.3 节说明各项比较使用的模型变体。[消融实验结果](paper/results.json)
 
-## 使用
+## 快速开始
+
+需要 Python 3.10 或更高版本。仓库沿用名称 `ReCoMER`，Python 包的导入路径为 `recomer`。
 
 ```bash
 git clone https://github.com/China-hanwudi/ReCoMER.git
@@ -38,10 +40,10 @@ python -m pytest tests/recomer -q
 python scripts/report_paper_results.py
 ```
 
-当前 Python 包提供论文核心机制的清晰参考实现。示例使用合成特征在 CPU 上验证预测流程；主结果表来自论文实验。特征维度、类别顺序及冻结预测参数应与自己的实际数据和训练产物匹配，接口说明见 [IMPLEMENTATION.md](paper/IMPLEMENTATION.md)。
+示例在 CPU 上使用合成特征运行上下文预测与音视频校正。结果脚本读取并打印论文报告的数值。M3ED 使用 2,560 维文本、2,048 维音频和 342 维视觉特征。输入张量形状、可用性掩码、训练目标和预测融合方式见[实现说明](paper/IMPLEMENTATION.md)。
 
-## 效率
+早期研究材料位于 [temporal_n3/](temporal_n3/) 和 [ReCoMER_paper_20261006/](ReCoMER_paper_20261006/)。
 
-论文报告完整模型 **13.121M 参数**，RTX 5090 上每条语句 **1.401 ms**。NCHA、FCCR、SABER 合计增加 **0.086M 参数（0.66%）**。计时为八段开发集对话、187 条语句的预热后五次中位数，包含专家计算，不含特征提取、传输与加载。
+## 引用与许可
 
-旧 TemporalN3 与早期论文目录保留，当前入口以本页链接的 ReCoMER 包和论文为准。原有提交历史和数据保留。自有代码沿用 [MIT 许可证](LICENSE)，数据与第三方模型遵循各自来源的使用条件。
+引用论文可使用 [BibTeX 条目](CITATION.bib)。仓库自有代码采用 [MIT 许可证](LICENSE)，数据集和预训练特征提取器的使用条件以各自提供方为准。

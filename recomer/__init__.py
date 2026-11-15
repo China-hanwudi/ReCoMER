@@ -1,4 +1,4 @@
-"""ReCoMER: history admission, bounded feedback and contribution routing."""
+"""HMBR reference implementation for multimodal conversational emotion recognition."""
 from .config import ReCoMERConfig
 from .model import MODALITIES, FrozenContext, ReCoMERContextModel, limit_relative_norm
 from .shapley import exact_shapley, standardize_shapley, bounded_routing_weights

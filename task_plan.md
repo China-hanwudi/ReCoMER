@@ -1,7 +1,6 @@
 # CARMA-Affect N3 候选方案顶会证据推进计划
 
-> **2026-10-06 二次注记：** 仓库最新状态见根目录 README 顶部与 progress.md 的 2026-10-06 条目（当前主线为 ReCoMER 论文，ReCoMER_paper_20261006/）。本文及本目录其余文档为 2026-08 时期历史记录。
->
+本文记录早期 CARMA-Affect / N3 的研究计划。HMBR 的当前论文与实现见[仓库首页](README.zh-CN.md)。
 
 ## Goal
 

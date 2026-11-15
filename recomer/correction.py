@@ -26,6 +26,15 @@ def correction_statistics(tav: Tensor, av: Tensor, prior: Tensor, eps: float = 1
                         -(tav * tav.clamp_min(eps).log()).sum(-1)), dim=-1)
 
 
+def _mask_gate(gate: Tensor, av_available: Tensor | None) -> Tensor:
+    if av_available is None:
+        return gate
+    available = torch.as_tensor(av_available, device=gate.device).reshape(-1)
+    if available.shape != gate.shape or ((available != 0) & (available != 1)).any():
+        raise ValueError("av_available must contain one binary value per utterance")
+    return gate * available.to(gate.dtype)
+
+
 def correct_predictions(tav_probabilities: Tensor, av_probabilities: Tensor,
                         class_prior: Tensor, gate: Tensor,
                         av_available: Tensor | None = None, eps: float = 1e-9) -> Tensor:
@@ -36,14 +45,10 @@ def correct_predictions(tav_probabilities: Tensor, av_probabilities: Tensor,
     """
     tav, av = tav_probabilities, av_probabilities
     correction_statistics(tav, av, class_prior, eps)
-    gate = torch.as_tensor(gate, device=tav.device, dtype=tav.dtype).reshape(-1, 1)
-    if gate.shape != (len(tav), 1) or not torch.isfinite(gate).all() or ((gate < 0) | (gate > 1)).any():
+    gate = torch.as_tensor(gate, device=tav.device, dtype=tav.dtype).reshape(-1)
+    if gate.shape != (len(tav),) or not torch.isfinite(gate).all() or ((gate < 0) | (gate > 1)).any():
         raise ValueError("gate must contain one value in [0,1] per utterance")
-    if av_available is not None:
-        availability = torch.as_tensor(av_available, device=tav.device).reshape(-1, 1)
-        if availability.shape != gate.shape or ((availability != 0) & (availability != 1)).any():
-            raise ValueError("av_available must be a binary [B] mask")
-        gate = gate * availability.to(tav.dtype)
+    gate = _mask_gate(gate, av_available)[:, None]
     evidence = (av + eps).log() - (class_prior + eps).log()
     corrected = ((tav + eps).log() + gate * evidence).softmax(-1)
     return torch.where(gate == 0, tav, corrected)
@@ -61,10 +66,8 @@ class PriorRelativeCorrection(nn.Module):
 
     def forward(self, tav: Tensor, av: Tensor, av_available: Tensor | None = None) -> dict[str, Tensor]:
         statistics = correction_statistics(tav, av, self.class_prior)
-        rho = self.gate(statistics).sigmoid().squeeze(-1)
-        if av_available is not None:
-            rho = rho * av_available.to(device=rho.device, dtype=rho.dtype)
-        return {"probabilities": correct_predictions(tav, av, self.class_prior, rho, av_available),
+        rho = _mask_gate(self.gate(statistics).sigmoid().squeeze(-1), av_available)
+        return {"probabilities": correct_predictions(tav, av, self.class_prior, rho),
                 "gate": rho, "statistics": statistics}
 
 

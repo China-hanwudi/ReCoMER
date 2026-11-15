@@ -1,5 +1,7 @@
 # CARMA-Affect Research Findings
 
+本文记录 CARMA-Affect 的研究发现。HMBR 的论文和实验结果见[仓库首页](README.zh-CN.md)。
+
 ## 当前两阶段方案摘要（2026-08-13；计划边界，不是性能发现）
 
 - **表示边界：**原始文本/音频/视频 `x` 经冻结 Qwen 分模态、分候选离线产生 hidden `e` 并保存 provenance；三个可训练 `ModalityProjector` 再产生真正的 N3 输入 `z`，固定为 `Z_current=[B,3,128]`、`Z_history=[B,K=3,3,128]`。不得混写 `x/e/z`，也不得提前消掉候选轴。

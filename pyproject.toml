@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "recomer-erc"
 version = "0.1.0"
-description = "History admission and contribution routing for multimodal conversational emotion recognition"
+description = "HMBR reference implementation for multimodal conversational emotion recognition"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}

@@ -1,4 +1,4 @@
-"""Configuration for the ReCoMER method reference implementation."""
+"""Configuration for the HMBR reference implementation."""
 from dataclasses import asdict, dataclass
 from typing import Any
 

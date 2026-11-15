@@ -168,9 +168,15 @@ def test_prior_relative_correction_and_arithmetic_fusion():
     torch.testing.assert_close(correct_predictions(tav, av, prior, gate, torch.zeros(2)), tav, rtol=0, atol=0)
     torch.testing.assert_close(correct_predictions(tav, prior.expand_as(tav), prior, gate), tav)
     torch.testing.assert_close(arithmetic_fusion(tav, actual, .3), .7 * tav + .3 * actual)
-    learned = PriorRelativeCorrection(prior)(tav, av, torch.tensor([1, 0]))
+    corrector = PriorRelativeCorrection(prior)
+    available = torch.tensor([1, 0])
+    learned = corrector(tav, av, available)
     assert learned["statistics"].shape == (2, 6)
     assert learned["gate"][1] == 0
+    column_mask = corrector(tav, av, available[:, None])
+    torch.testing.assert_close(column_mask["gate"], learned["gate"])
+    torch.testing.assert_close(column_mask["probabilities"], learned["probabilities"])
+    torch.testing.assert_close(column_mask["probabilities"][1], tav[1], rtol=0, atol=0)
 
 
 def test_output_composition_matches_formulas():

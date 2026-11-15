@@ -1,9 +1,6 @@
-> 2026-10-29: 当前 ReCoMER 论文、方法参考实现及使用入口见 [README](README.md) 与 [paper/IMPLEMENTATION.md](paper/IMPLEMENTATION.md)。下文保留早期研究版本的数据边界记录。
-
 # 数据与发布边界（科研协作版）
 
-> **2026-10-06 二次注记：** 仓库最新状态见根目录 README 顶部与 progress.md 的 2026-10-06 条目（当前主线为 ReCoMER 论文，ReCoMER_paper_20261006/）。本文及本目录其余文档为 2026-08 时期历史记录。
->
+本文记录早期项目的数据使用范围与许可。HMBR 的输入和评估协议见[实现说明](paper/IMPLEMENTATION.md)。
 
 最后修订：2026-08-09
 

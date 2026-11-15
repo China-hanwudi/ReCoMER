@@ -1,4 +1,4 @@
-"""ReCoMER contextual reference model: NCHA -> FCCR -> SABER."""
+"""HMBR contextual reference model with NCHA, FCCR, and SABER."""
 from dataclasses import dataclass
 from collections.abc import Mapping
 import math

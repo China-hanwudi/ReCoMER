@@ -1,4 +1,4 @@
-"""Exercise ReCoMER with synthetic inputs; this is not a benchmark run."""
+"""Run the HMBR reference model on synthetic inputs."""
 from pathlib import Path
 import argparse
 import json

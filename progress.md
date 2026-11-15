@@ -1,6 +1,8 @@
 # CARMA-Affect Progress Log
 
-## 2026-10-06 — ReCoMER 论文主线同步（当前最新）
+当前 HMBR 论文、实验结果和使用说明见[仓库首页](README.zh-CN.md)。以下按日期保留早期版本的进度。
+
+## 2026-10-06 — ReCoMER 论文主线同步
 
 - 新增 `ReCoMER_paper_20261006/`：ReCoMER（MHnoU + 独立 cRBEF 专家 + 有界局部融合）论文工作区全量同步。
 - 论文 `ReCoMER_CVPR_修改版_v3_20261006.pdf`：正文恰好 8 页（参考文献自第 9 页起），LaTeX 工程可复编译。
